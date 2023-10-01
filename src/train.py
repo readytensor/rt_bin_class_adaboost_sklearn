@@ -10,7 +10,6 @@ from prediction.predictor_model import (
     train_predictor_model,
 )
 from preprocessing.preprocess import (
-    # handle_class_imbalance,
     insert_nulls_in_nullable_features,
     save_pipeline_and_target_encoder,
     train_pipeline_and_target_encoder,
