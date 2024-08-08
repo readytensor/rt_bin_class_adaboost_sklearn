@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.exceptions import NotFittedError
+from sklearn.metrics import f1_score
 
 warnings.filterwarnings("ignore")
 
@@ -27,6 +28,7 @@ class Classifier:
         self,
         n_estimators: Optional[int] = 100,
         learning_rate: Optional[float] = 1e-1,
+        prob_threshold: Optional[float] = 0.5,
         **kwargs,
     ):
         """Construct a new Adaboost classifier.
@@ -42,6 +44,7 @@ class Classifier:
         """
         self.n_estimators = int(n_estimators)
         self.learning_rate = float(learning_rate)
+        self.prob_threshold = float(prob_threshold)
         self.model = self.build_model()
         self._is_trained = False
 
@@ -93,7 +96,11 @@ class Classifier:
             float: The accuracy of the classifier.
         """
         if self.model is not None:
-            return self.model.score(test_inputs, test_targets)
+            prob = self.predict_proba(test_inputs)
+            labels = prob[:, 1] > self.prob_threshold
+
+            return f1_score(test_targets, labels)
+
         raise NotFittedError("Model is not fitted yet.")
 
     def save(self, model_dir_path: str) -> None:
