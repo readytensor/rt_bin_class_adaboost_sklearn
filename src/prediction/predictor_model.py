@@ -95,6 +95,7 @@ class Classifier:
         Returns:
             float: The accuracy of the classifier.
         """
+        print("ahooo", self.prob_threshold)
         if self.model is not None:
             prob = self.predict_proba(test_inputs)
             labels = prob[:, 1] > self.prob_threshold

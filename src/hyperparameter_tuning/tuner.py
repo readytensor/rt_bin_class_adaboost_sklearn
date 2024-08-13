@@ -63,11 +63,16 @@ class HyperParameterTuner:
             is_minimize:  Whether the metric should be minimized or maximized.
                 Defaults to True.
         """
+        self.classifier = None
         self.default_hyperparameters = default_hyperparameters
         self.hpt_specs = hpt_specs
         self.hpt_results_dir_path = hpt_results_dir_path
         self.is_minimize = is_minimize
-        self.num_trials = hpt_specs.get("num_trials", 20)
+        self.num_trials = hpt_specs.get("num_trials", 5)
+        hyperparameters_list = hpt_specs["hyperparameters"]
+        self.search_space = {
+            hp_obj["name"]: hp_obj["categories"] for hp_obj in hyperparameters_list
+        }
         assert self.num_trials >= 2, "Hyperparameter Tuning needs at least 2 trials"
         # Create optuna study
         self.study = optuna.create_study(
@@ -75,7 +80,7 @@ class HyperParameterTuner:
             # always minimize because we handle the direction in the obj. function
             direction="minimize",
             # specify the sampler, with a fixed seed for reproducibility
-            sampler=optuna.samplers.TPESampler(seed=5),
+            sampler=optuna.samplers.GridSampler(search_space=self.search_space, seed=5),
         )
 
     def run_hyperparameter_tuning(
@@ -138,9 +143,16 @@ class HyperParameterTuner:
             # extra hyperparameters from trial
             hyperparameters = self._extract_hyperparameters_from_trial(trial)
             # train model
-            classifier = train_predictor_model(train_X, train_y, hyperparameters)
+            if self.classifier is None:
+                self.classifier = train_predictor_model(
+                    train_X, train_y, hyperparameters
+                )
+            else:
+                self.classifier.prob_threshold = hyperparameters["prob_threshold"]
             # evaluate the model
-            score = round(evaluate_predictor_model(classifier, valid_X, valid_y), 6)
+            score = round(
+                evaluate_predictor_model(self.classifier, valid_X, valid_y), 6
+            )
             if np.isnan(score) or math.isinf(score):
                 # sometimes loss becomes inf/na, so use a large "bad" value
                 score = 1.0e6 if self.is_minimize else -1.0e6
