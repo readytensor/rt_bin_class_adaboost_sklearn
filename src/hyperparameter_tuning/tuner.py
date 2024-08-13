@@ -142,6 +142,7 @@ class HyperParameterTuner:
             its performance"""
             # extra hyperparameters from trial
             hyperparameters = self._extract_hyperparameters_from_trial(trial)
+            hyperparameters = self.default_hyperparameters | hyperparameters
             # train model
             if self.classifier is None:
                 self.classifier = train_predictor_model(
