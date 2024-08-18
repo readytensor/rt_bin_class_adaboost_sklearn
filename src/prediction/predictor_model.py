@@ -28,7 +28,7 @@ class Classifier:
         self,
         n_estimators: Optional[int] = 100,
         learning_rate: Optional[float] = 1e-1,
-        prob_threshold: Optional[float] = 0.5,
+        decision_threshold: Optional[float] = 0.5,
         **kwargs,
     ):
         """Construct a new Adaboost classifier.
@@ -44,7 +44,7 @@ class Classifier:
         """
         self.n_estimators = int(n_estimators)
         self.learning_rate = float(learning_rate)
-        self.prob_threshold = float(prob_threshold)
+        self.decision_threshold = float(decision_threshold)
         self.model = self.build_model()
         self._is_trained = False
 
@@ -95,10 +95,10 @@ class Classifier:
         Returns:
             float: The accuracy of the classifier.
         """
-        print("ahooo", self.prob_threshold)
+        print("ahooo", self.decision_threshold)
         if self.model is not None:
             prob = self.predict_proba(test_inputs)
-            labels = prob[:, 1] > self.prob_threshold
+            labels = prob[:, 1] >= self.decision_threshold
 
             return f1_score(test_targets, labels)
 
