@@ -29,6 +29,7 @@ class Classifier:
         n_estimators: Optional[int] = 100,
         learning_rate: Optional[float] = 1e-1,
         decision_threshold: Optional[float] = 0.5,
+        positive_class_weight: Optional[float] = 1.0,
         **kwargs,
     ):
         """Construct a new Adaboost classifier.
@@ -41,10 +42,15 @@ class Classifier:
                 at each boosting iteration. A higher learning rate increases
                 the contribution of each classifier.
                 Defaults to 1e-1.
+            decision_threshold (float, optional): The decision threshold for
+                the positive class. Defaults to 0.5.
+            positive_class_weight (float, optional): The weight of the positive
+                class. Defaults to 1.0.
         """
         self.n_estimators = int(n_estimators)
         self.learning_rate = float(learning_rate)
         self.decision_threshold = float(decision_threshold)
+        self.positive_class_weight = float(positive_class_weight)
         self.model = self.build_model()
         self._is_trained = False
 
@@ -63,18 +69,28 @@ class Classifier:
             train_inputs (pandas.DataFrame): The features of the training data.
             train_targets (pandas.Series): The labels of the training data.
         """
-        self.model.fit(train_inputs, train_targets)
+        sample_weight = train_targets.map({0: 1, 1: self.positive_class_weight})
+        self.model.fit(train_inputs, train_targets, sample_weight=sample_weight)
         self._is_trained = True
 
-    def predict(self, inputs: pd.DataFrame) -> np.ndarray:
+    def predict(self, inputs: pd.DataFrame, decision_threshold: float = -1,) -> np.ndarray:
         """Predict class labels for the given data.
 
         Args:
             inputs (pandas.DataFrame): The input data.
+            decision_threshold (Optional float): Decision threshold for the
+                positive class.
+                Value -1 indicates use the default set when model was
+                instantiated.
         Returns:
             numpy.ndarray: The predicted class labels.
         """
-        return self.model.predict(inputs)
+        if decision_threshold == -1:
+            decision_threshold = self.decision_threshold
+        if self.model is not None:
+            prob = self.predict_proba(inputs)
+            labels = prob[:, 1] > decision_threshold
+        return labels
 
     def predict_proba(self, inputs: pd.DataFrame) -> np.ndarray:
         """Predict class probabilities for the given data.
